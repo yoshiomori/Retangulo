@@ -25,6 +25,12 @@ function produtoVetorial(u,v)
 	return [u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]];
 };
 
+function normalize(v)
+{
+	var moduloV = Math.sqrt(produtoInterno(v,v));
+	return [v[0]/moduloV, v[1]/moduloV, v[2]/moduloV];
+};
+
 //++++++++++++++++++++++++++++++++++++++++++++++ Operações Lineares ++++++++++++++++++++++++++++++++++++++++++++++
 
 //Iniciar o ambiente quando a página for carregada
@@ -215,30 +221,38 @@ function desenharCena()
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 	
 	var camera = new Object();
-	camera.position = [0,0,10];
-	camera.lookAt = [0,0,-1];
+	// Atributos da Câmera
+	camera.position = [20,20,20];
+	camera.lookAt = [0,0,-10];
+	camera.up = [1,0,1];
+	// Método da Câmera
 	camera.update = function(){
-		var newLookAt = new Array;
-		// View
-		mat4.identity(vMatrix);
-		
-		console.log(this.lookAt);
-		mat4.rotate(vMatrix,Math.acos(this.lookAt[2]/Math.sqrt(produtoInterno(this.lookAt,this.lookAt))),[this.lookAt[1],-this.lookAt[0],0]);
-		mat4.multiplyVec3(vMatrix, this.position);
-		mat4.multiplyVec3(vMatrix, this.lookAt,newLookAt);
 		this.position[0] = -this.position[0];
 		this.position[1] = -this.position[1];
 		this.position[2] = -this.position[2];
-		mat4.translate(vMatrix,this.position);
-		mat4.multiplyVec3(vMatrix, this.lookAt,newLookAt);
-		mat4.rotate(vMatrix, Math.acos(newLookAt[2]/Math.sqrt(produtoInterno(newLookAt,newLookAt))), [newLookAt[1],-newLookAt[0],0]);
-		mat4.multiplyVec3(vMatrix, this.lookAt,newLookAt);
+		
+		this.lookAt = [this.lookAt[0] + this.position[0], this.lookAt[1] + this.position[1], this.lookAt[2] + this.position[2]];
+		
+		var menosAt = new Float32Array();
+		menosAt = [-this.lookAt[0], -this.lookAt[1], -this.lookAt[2]];
+		menosAt = normalize(menosAt);
+		
+		this.up = normalize(this.up);
+		var right = produtoVetorial(this.up,menosAt);
+		this.up = produtoVetorial(menosAt,right);
+
+		vMatrix = [right[0],right[1],right[2],0,
+		          this.up[0],this.up[1],this.up[2],0,
+		          menosAt[0],menosAt[1],menosAt[2],0,
+		          0,0,0,1];
+		mat4.inverse(vMatrix);
+		mat4.translate(vMatrix, this.position);
 	};
 	camera.update();
 	
 	// Atributos do objeto
 	var object = new Object();
-	object.position = [0, 0, -1];
+	object.position = [0, 0, -10];
 	object.scale = [1, 1, 1];
 	object.rotate = [0, 0, 0];
 	// Método do objeto
